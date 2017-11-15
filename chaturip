@@ -1,0 +1,88 @@
+#!/bin/bash
+
+#for the file name 
+#timestamp=$( date +%F_%T )
+timestamp=$(date +%F-%T)
+
+#chech if ping is already running 
+ps cax | grep ping
+if [ $? -eq 0 ]; then
+  echo "already pinging"
+else
+  echo "startibg ping ."
+#start pinging edge88.stream.highwebmedia.com
+#to check if it stops connection reset by peer 
+ping -q edge88.stream.highwebmedia.com&
+fi
+
+
+if grep -q "https://chaturbate.com/" <<<"$1"; then
+#thids is the full url 
+m3u8_url=$(curl $1 | grep m3u8 | tail -n1 |sed 's/\m3u8.*/m3u8/' | grep m3u8 | head -n1 |sed 's/\m3u8.*/m3u8/' | sed -ne 's/.*\(http[^"]*\).*/\1/p')
+#we need to get just the modeln ame to save the file 
+#remove all of $1 except model ane 
+filename=$(echo $1|cut -c24-|sed 's/.$//')
+
+
+
+else
+
+m3u8_url=$(curl https://chaturbate.com/$1/ | grep m3u8 | head -n1 |sed 's/\m3u8.*/m3u8/' | grep m3u8 | head -n1 |sed 's/\m3u8.*/m3u8/' | sed -ne 's/.*\(http[^"]*\).*/\1/p')
+
+filename=$(echo $1)
+fi
+
+echo $m3u8_url
+
+#lilyterm -j -n $filename -e COMMAND 
+
+
+if [ -d "$filename" ]; then  
+    cd $filename
+else
+mkdir $filename
+cd $filename
+  
+fi
+
+
+
+new_url='hlsvariant://'
+
+
+
+full_path="$new_url$m3u8_url"
+
+newfile="$filename-$timestamp"
+
+echo $newfile
+
+
+echo $fullpath | sed -e 's/live-edge\(.*\)-/\1/'
+
+ls | if grep -q .nfo; then     
+
+echo found 
+
+else     
+echo not found 
+curl "https://chaturbate.com/$filename/" | grep -A 20 '<div id="tabs_content_container" xmlns="http://www.w3.org/1999/html">' | sed "s/<dd>/$\n/g"| sed "s/<\/dt>//g" |  sed "s/<\/dd>//g"| sed "s/<dt>//g" | sed "s/\$//g"| grep -v class | grep -v ":"|sed '/^$/d' |sed 1,2d > $newfile.nfo
+
+fi
+
+
+
+
+#start pinging edge88.stream.highwebmedia.com
+#to check if it stops connection reset by peer 
+
+
+
+
+#looks like this is the best were going to get seems to loose few if ny frames 
+lilyterm -j -n $filename -e  livestreamer  --hls-segment-threads 4 "$full_path" best  -o "$newfile.flv"
+
+
+
+
+
